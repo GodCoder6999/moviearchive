@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineGenius | The Archive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Permanent+Marker&family=Poppins:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-paper: #140028; --bg-panel: #220044; --ink: #ffffff; --ink-muted: #d1c4e9;
+            --border: #4a148c; --accent: #ff00cc; --accent-secondary: #00e5ff;
+            --card-bg: rgba(255, 255, 255, 0.07); --shadow-card: 0 15px 35px rgba(255, 0, 204, 0.4);
+            --font-head: 'Montserrat', sans-serif; --font-body: 'Poppins', sans-serif;
+            --imdb-yellow: #ffd700;
+        }
+        [data-theme="light"] {
+            --bg-paper: #fffbea; --bg-panel: #f0faff; --ink: #1a1a2e; --ink-muted: #5c5c8a;
+            --border: #afeeee; --accent: #00bcd4; --accent-secondary: #ff4081; --card-bg: #ffffff;
+            --shadow-card: 8px 8px 0px rgba(0, 188, 212, 0.3); --imdb-yellow: #f5c518;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            background-color: var(--bg-paper); color: var(--ink); font-family: var(--font-body); margin: 0; padding: 0; 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: 0.5s;
+            background-image: radial-gradient(circle at 10% 20%, var(--bg-panel) 0%, transparent 20%), radial-gradient(circle at 90% 80%, var(--bg-panel) 0%, transparent 20%);
+        }
+        /* --- LAYOUT & HEADER --- */
+        .masthead { height: 80px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 60px; background: var(--bg-paper); z-index: 50; flex-shrink: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .logo { font-family: var(--font-head); font-weight: 900; font-size: 28px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink); cursor: default; }
+        .logo span { color: var(--accent); font-style: italic; text-shadow: 2px 2px 0px var(--accent-secondary); }
+        .mode-toggle { display: flex; gap: 15px; background: var(--bg-panel); padding: 10px 20px; border-radius: 30px; border: 2px solid var(--border); }
+        .mode-btn { background: transparent; border: none; color: var(--ink-muted); font-family: var(--font-head); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; padding: 8px 16px; transition:0.3s; border-radius: 20px; }
+        .mode-btn:hover, .mode-btn.active { background: var(--accent); color: #fff; box-shadow: 3px 3px 0px var(--accent-secondary); transform: translateY(-2px); }
+        .theme-switch { background: var(--bg-panel); border: 2px solid var(--accent); color: var(--accent); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.4s; font-size: 22px; box-shadow: 3px 3px 0px var(--accent-secondary); }
+        
+        .editorial-layout { display: flex; flex: 1; overflow: hidden; position: relative; z-index: 10; }
+        .research-sidebar { width: 400px; background: var(--bg-panel); padding: 35px; overflow-y: auto; border-right: 2px solid var(--border); transition: 0.5s; box-shadow: 5px 0 20px rgba(0,0,0,0.05); }
+        .canvas { flex: 1; padding: 60px 80px; overflow-y: auto; background: transparent; position: relative; }
+        
+        /* --- CONTROLS --- */
+        .sidebar-title { font-family: var(--font-head); font-weight: 900; font-size: 14px; letter-spacing: 1px; color: var(--accent-secondary); border-bottom: 2px dashed var(--border); padding-bottom: 15px; margin-bottom: 25px; text-align: center; text-transform: uppercase; }
+        input, select, textarea { width: 100%; background: var(--bg-paper); color: var(--ink); border: 2px solid var(--border); padding: 14px; font-family: var(--font-body); font-weight: 600; font-size: 14px; border-radius: 8px; transition: 0.3s; margin-bottom: 15px; }
+        input:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 15px var(--accent); }
+        .btn-archive { width: 100%; padding: 16px; background: linear-gradient(45deg, var(--accent), var(--accent-secondary)); color: #fff; border: none; font-family: var(--font-head); font-weight: 900; font-size: 14px; letter-spacing: 2px; cursor: pointer; text-transform: uppercase; margin-top: 20px; transition: 0.4s; border-radius: 8px; box-shadow: 5px 5px 0px rgba(0,0,0,0.2); }
+        .btn-archive:hover { transform: translateY(-4px) scale(1.02); box-shadow: 8px 8px 0px rgba(0,0,0,0.3); }
+        
+        /* --- CARDS & GRID --- */
+        .exhibit-grid, .describe-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 40px; }
+        .describe-list { display: flex; flex-direction: column; gap: 30px; }
+        
+        .exhibit-card, .describe-card { cursor: pointer; display: flex; flex-direction: column; transition: 0.4s; background: var(--card-bg); padding: 15px; border-radius: 16px; border: 2px solid var(--border); opacity: 0; animation: popIn 0.6s forwards; position: relative; }
+        .describe-card { flex-direction: row; gap: 30px; padding: 25px; align-items: flex-start; }
+        
+        .exhibit-card:hover, .describe-card:hover { transform: translateY(-10px) scale(1.02); border-color: var(--accent); box-shadow: var(--shadow-card); z-index: 10; }
+        .poster-frame, .describe-poster { width: 100%; aspect-ratio: 2/3; background: #111; overflow: hidden; border-radius: 10px; }
+        .describe-poster { width: 120px; flex-shrink: 0; }
+        .poster-frame img, .describe-poster { width: 100%; height: 100%; object-fit: cover; }
+        
+        .film-title, .describe-title { font-family: var(--font-head); font-weight: 900; font-size: 18px; line-height: 1.2; color: var(--ink); margin-bottom: 8px; }
+        .describe-title { font-size: 24px; }
+        .film-meta-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-muted); font-weight: 700; }
+        .ai-score { color: #fff; background: var(--accent); padding: 4px 8px; border-radius: 10px; font-size: 10px; font-weight: 900; margin-top: 10px; text-transform: uppercase; display: inline-block; }
+        .describe-reason { font-size: 14px; line-height: 1.6; color: #fff; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border-left: 4px solid var(--accent); font-style: italic; margin-top: 10px; }
+
+        /* --- MODAL --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: none; justify-content: center; align-items: center; opacity: 0; transition: 0.3s; backdrop-filter: blur(5px); }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-card { background: var(--bg-panel); width: 90%; max-width: 850px; border-radius: 20px; border: 2px solid var(--accent); padding: 40px; position: relative; transform: translateY(20px); transition: 0.3s; max-height: 90vh; overflow-y: auto; }
+        .modal-overlay.active .modal-card { transform: translateY(0); }
+        .modal-content-flex { display: flex; gap: 40px; align-items: flex-start; }
+        .modal-poster { width: 280px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-close { position: absolute; top: 20px; right: 25px; font-size: 35px; cursor: pointer; color: var(--ink-muted); }
+        
+        /* CAST & STREAMING */
+        .cast-grid, .stream-grid { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; margin-top: 20px; }
+        .cast-card { flex: 0 0 80px; text-align: center; font-size: 10px; }
+        .cast-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); margin-bottom: 5px; }
+        .stream-logo { width: 45px; height: 45px; border-radius: 10px; border: 1px solid var(--border); }
+
+        /* DOSSIER (INTEL) */
+        #dossier-content { max-width: 1000px; margin: 0 auto; padding-top: 40px; }
+        .dossier-header-title { font-family: var(--font-head); font-weight: 900; font-size: 50px; color: var(--ink); text-shadow: 3px 3px 0px var(--accent-secondary); line-height: 1; }
+        .intel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: rgba(0,0,0,0.2); padding: 30px; border-radius: 20px; margin-top: 40px; border: 2px solid var(--border); }
+        .intel-item div:first-child { font-weight: 900; color: var(--ink-muted); font-size: 11px; letter-spacing: 1px; }
+        .intel-item div:last-child { font-size: 16px; color: var(--accent); font-weight: 700; }
+        
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @media (max-width: 768px) { .modal-content-flex { flex-direction: column; align-items: center; text-align: center; } .modal-poster { width: 200px; } .describe-card { flex-direction: column; } .describe-poster { width: 100%; } }
+        .btn-back { position: absolute; top: 20px; left: 20px; background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; border-radius: 20px; font-weight: 700; cursor: pointer; display: none; z-index: 99; }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <header class="masthead">
+        <div class="logo">CineGenius <span>ARCHIVE</span></div>
+        <div class="mode-toggle">
+            <button class="mode-btn active" onclick="switchMode('filter')" id="btn-browse">Browse</button>
+            <button class="mode-btn" onclick="switchMode('search')" id="btn-search">Curate</button>
+            <button class="mode-btn" onclick="switchMode('describe')" id="btn-describe">Dream</button>
+            <button class="mode-btn" onclick="switchMode('knowledge')" id="btn-know">Intel</button>
+        </div>
+        <button class="theme-switch" onclick="toggleTheme()">☀</button>
+    </header>
+
+    <div class="editorial-layout">
+        <aside class="research-sidebar">
+            <div class="sidebar-title">Archive Controls</div>
+            <div id="sidebar-controls">
+                
+                <div id="input-filter">
+                    <div class="mood-box" style="margin-bottom:20px; padding:15px; border:2px dashed var(--accent); border-radius:10px;">
+                        <div style="font-size:10px; font-weight:900; color:var(--accent); margin-bottom:5px;">✨ VIBE CHECK</div>
+                        <textarea id="browse-mood" style="height:60px; font-size:12px;" placeholder="I need something cozy..."></textarea>
+                        <button class="btn-archive" onclick="runMoodSearch()">Find My Vibe</button>
+                    </div>
+                    <select id="browse-type" onchange="resetAndRunBrowse()"><option value="movie">Movies</option><option value="tv">Series</option></select>
+                    <select id="sort-select" onchange="resetAndRunBrowse()"><option value="popularity.desc">Most Popular</option><option value="vote_average.desc">Top Rated</option></select>
+                    <div id="genre-container" class="genre-grid"></div>
+                </div>
+
+                <div id="input-search" style="display:none;">
+                    <select id="curate-type"><option value="movie">Target: Movie</option><option value="tv">Target: Series</option></select>
+                    <input type="text" id="ref-search" placeholder="Reference (e.g. Inception)">
+                    <textarea id="ai-context" placeholder="What did you like about it?" style="height:80px;"></textarea>
+                    <button class="btn-archive" onclick="runCurateSearch()">Generate</button>
+                </div>
+
+                <div id="input-describe" style="display:none;">
+                    <select id="describe-type"><option value="movie">I want a Movie...</option><option value="tv">I want a Series...</option></select>
+                    <textarea id="describe-input" placeholder="Describe the plot, vibe, or characters..." style="height:150px;"></textarea>
+                    <button class="btn-archive" onclick="runDescribeSearch()">Interpret Dream</button>
+                </div>
+
+                <div id="input-dossier" style="display:none;">
+                    <input type="text" id="know-search" placeholder="Enter Title...">
+                    <button class="btn-archive" onclick="runKnowledgeSearch()">Access File</button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="canvas">
+            <button class="btn-back" id="btn-back" onclick="goBack()">← Back</button>
+            <div id="view-collection">
+                <div style="margin-bottom:30px;">
+                    <h1 class="section-header" style="font-size:40px; margin:0; line-height:1;">THE COLLECTION</h1>
+                    <div id="main-subtitle" style="font-size:12px; font-weight:700; color:var(--accent-secondary); letter-spacing:2px; text-transform:uppercase;">Advanced Filter</div>
+                </div>
+                <div id="grid-container" class="exhibit-grid"></div>
+                <button id="btn-load-more" class="btn-archive" onclick="loadMore()" style="width:auto; margin:40px auto; display:none;">Load More</button>
+            </div>
+            <div id="view-dossier" style="display:none;"><div id="dossier-content"></div></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="quick-view-modal" onclick="closeModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-close" onclick="closeModal()">×</div>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+<script>
+    // --- CONFIGURATION ---
+    const TMDB_KEY = "09ca3ca71692ba80b848d268502d24ed"; 
+    const BASE_URL = 'https://api.themoviedb.org/3';
+    const IMG_URL = 'https://image.tmdb.org/t/p/w500';
+    
+    // --- ⚠️ PASTE YOUR GROQ KEY HERE ⚠️ ---
+    const GROQ_API_KEY = "gsk_..."; // <--- REPLACE THIS WITH YOUR KEY (e.g., "gsk_8H...")
+    const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+    let currentMode = 'filter', currentPage = 1, isFetching = false, curatedTitles = [];
+    let previousMode = 'filter';
+
+    // --- INIT ---
+    window.onload = () => {
+        const g = [{id:28,n:"Action"},{id:878,n:"Sci-Fi"},{id:27,n:"Horror"},{id:35,n:"Comedy"},{id:18,n:"Drama"},{id:53,n:"Thriller"},{id:9648,n:"Mystery"},{id:10749,n:"Romance"}];
+        const c = document.getElementById('genre-container');
+        g.forEach(x => { 
+            let d = document.createElement('div'); d.className='genre-pill'; d.innerText=x.n; d.dataset.id = x.id;
+            d.onclick=()=>{d.classList.toggle('selected'); resetAndRunBrowse();}; c.appendChild(d); 
+        });
+        resetAndRunBrowse();
+    };
+
+    function toggleTheme() {
+        const b = document.body;
+        b.setAttribute('data-theme', b.getAttribute('data-theme')==='dark'?'light':'dark');
+    }
+
+    function switchMode(mode) {
+        if(mode !== 'knowledge') previousMode = mode;
+        currentMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-'+(mode==='filter'?'browse':mode==='search'?'search':mode==='describe'?'describe':'know')).classList.add('active');
+        
+        ['filter','search','describe','dossier'].forEach(x => document.getElementById('input-'+x).style.display = 'none');
+        document.getElementById('input-'+(mode==='knowledge'?'dossier':mode)).style.display = 'block';
+        
+        const isDossier = (mode === 'knowledge' && document.getElementById('view-dossier').style.display === 'block');
+        if(!isDossier) {
+            document.getElementById('view-collection').style.display = 'block';
+            document.getElementById('view-dossier').style.display = 'none';
+            document.getElementById('btn-back').style.display = 'none';
+        }
+
+        if(mode === 'filter') {
+            document.getElementById('main-subtitle').innerText = "Advanced Filter";
+            if(document.getElementById('grid-container').innerHTML === '') resetAndRunBrowse();
+        } else if(mode === 'search') {
+            document.getElementById('main-subtitle').innerText = "AI Curation";
+            if(document.getElementById('grid-container').innerHTML === '') document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px; opacity:0.5;">Select reference & type notes.</div>';
+        } else if(mode === 'describe') {
+            document.getElementById('main-subtitle').innerText = "Dream Interpretation";
+            document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px; opacity:0.5;">Describe your dream movie.</div>';
+            document.getElementById('btn-load-more').style.display = 'none';
+        }
+    }
+
+    function goBack() {
+        document.getElementById('view-dossier').style.display = 'none';
+        document.getElementById('view-collection').style.display = 'block';
+        document.getElementById('btn-back').style.display = 'none';
+        switchMode(previousMode);
+    }
+
+    // --- AI HELPERS ---
+    function cleanJSON(text) {
+        try {
+            let clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const firstSquare = clean.indexOf('['); const lastSquare = clean.lastIndexOf(']');
+            if(firstSquare !== -1 && lastSquare !== -1) return JSON.parse(clean.substring(firstSquare, lastSquare + 1));
+            const firstCurly = clean.indexOf('{'); const lastCurly = clean.lastIndexOf('}');
+            if(firstCurly !== -1 && lastCurly !== -1) return JSON.parse(clean.substring(firstCurly, lastCurly + 1));
+            return JSON.parse(clean);
+        } catch(e) { console.error("JSON Error", e); return []; }
+    }
+
+    async function callGroq(messages) {
+        try {
+            const res = await fetch(GROQ_URL, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: messages,
+                    temperature: 0.6,
+                    max_tokens: 1024
+                })
+            });
+            const data = await res.json();
+            return cleanJSON(data.choices[0].message.content);
+        } catch(e) { console.error("API Fail", e); return []; }
+    }
+
+    // --- CORE LOGIC ---
+    function resetAndRunBrowse() { currentPage=1; runBrowseSearch(); }
+    
+    async function runBrowseSearch() {
+        const type = document.getElementById('browse-type').value;
+        const sort = document.getElementById('sort-select').value;
+        const genres = Array.from(document.querySelectorAll('.genre-pill.selected')).map(el => el.dataset.id).join(',');
+        
+        let url = `${BASE_URL}/discover/${type}?api_key=${TMDB_KEY}&sort_by=${sort}&page=${currentPage}`;
+        if(genres) url += `&with_genres=${genres}`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        document.getElementById('grid-container').className = "exhibit-grid";
+        if(currentPage === 1) document.getElementById('grid-container').innerHTML = '';
+        renderGrid(data.results, type);
+        document.getElementById('btn-load-more').style.display = 'block';
+    }
+
+    // --- AI SEARCHES ---
+    async function runCurateSearch() {
+        const type = document.getElementById('curate-type').value;
+        const ref = document.getElementById('ref-search').value;
+        const prompt = document.getElementById('ai-context').value;
+        
+        document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px;">AI CURATOR IS THINKING...</div>';
+        
+        const messages = [
+            {role: "system", content: `You are a film curator. Recommend 6 ${type === 'tv' ? 'Series' : 'Movies'}. Format: JSON Array only. [{"title":"Name","reason":"Why","score":90}]. No Markdown.`},
+            {role: "user", content: `Reference: ${ref}. Notes: ${prompt}.`}
+        ];
+        
+        const aiData = await callGroq(messages);
+        processAiResults(aiData, type);
+    }
+
+    async function runDescribeSearch() {
+        const type = document.getElementById('describe-type').value;
+        const prompt = document.getElementById('describe-input').value;
+        
+        document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px;">INTERPRETING DREAM...</div>';
+        document.getElementById('grid-container').className = "describe-list";
+        
+        const messages = [
+            {role: "system", content: `You are a film expert. Recommend 6 ${type === 'tv' ? 'Series' : 'Movies'} matching this description. Format: JSON Array only. [{"title":"Name","reason":"Detailed reason why it fits","score":95}]. No Markdown.`},
+            {role: "user", content: prompt}
+        ];
+        
+        const aiData = await callGroq(messages);
+        processAiResults(aiData, type, true);
+    }
+
+    async function runMoodSearch() {
+        const mood = document.getElementById('browse-mood').value;
+        const type = document.getElementById('browse-type').value;
+        document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px;">VIBE CHECKING...</div>';
+        
+        const messages = [
+            {role: "system", content: `Recommend 6 ${type === 'tv' ? 'Series' : 'Movies'} for this mood. Format: JSON Array only. [{"title":"Name","reason":"Vibe check","score":88}].`},
+            {role: "user", content: mood}
+        ];
+        
+        const aiData = await callGroq(messages);
+        processAiResults(aiData, type);
+    }
+
+    async function processAiResults(aiData, type, isListMode = false) {
+        const grid = document.getElementById('grid-container');
+        grid.innerHTML = '';
+        
+        if(!aiData || aiData.length === 0) { grid.innerHTML = '<div style="text-align:center; padding:50px;">No matches found. Try again.</div>'; return; }
+
+        for(const item of aiData) {
+            const s = await fetch(`${BASE_URL}/search/${type}?api_key=${TMDB_KEY}&query=${encodeURIComponent(item.title)}`);
+            const d = await s.json();
+            if(d.results && d.results[0]) {
+                const m = d.results[0];
+                const card = document.createElement('div');
+                card.className = isListMode ? 'describe-card' : 'exhibit-card';
+                card.onclick = () => openQuickView(m, type);
+                
+                const img = m.poster_path ? IMG_URL + m.poster_path : 'https://via.placeholder.com/200x300';
+                
+                if(isListMode) {
+                    card.innerHTML = `<div class="describe-poster"><img src="${img}"></div><div class="describe-content"><div class="describe-title">${m.title || m.name}</div><div class="ai-score">MATCH: ${item.score}%</div><div class="describe-reason">"${item.reason}"</div></div>`;
+                } else {
+                    card.innerHTML = `<div class="poster-frame"><img src="${img}"></div><div class="film-title">${m.title || m.name}</div><div class="ai-score">MATCH: ${item.score}%</div>`;
+                }
+                grid.appendChild(card);
+            }
+        }
+        document.getElementById('btn-load-more').style.display = 'none';
+    }
+
+    function renderGrid(list, type) {
+        const grid = document.getElementById('grid-container');
+        list.forEach(m => {
+            if(!m.poster_path) return;
+            const card = document.createElement('div'); card.className = 'exhibit-card';
+            card.onclick = () => openQuickView(m, type);
+            card.innerHTML = `<div class="poster-frame"><img src="${IMG_URL + m.poster_path}"></div><div class="film-title">${m.title || m.name}</div>`;
+            grid.appendChild(card);
+        });
+    }
+
+    async function openQuickView(m, type) {
+        const modal = document.getElementById('quick-view-modal');
+        const content = document.getElementById('modal-content');
+        
+        // Fetch Details for Cast/Stream
+        const cred = await fetch(`${BASE_URL}/${type}/${m.id}/credits?api_key=${TMDB_KEY}`).then(r=>r.json());
+        const watch = await fetch(`${BASE_URL}/${type}/${m.id}/watch/providers?api_key=${TMDB_KEY}`).then(r=>r.json());
+        
+        const cast = cred.cast ? cred.cast.slice(0,5).map(c=>`<div class="cast-card"><img class="cast-img" src="${c.profile_path?IMG_URL+c.profile_path:''}"><br>${c.name}</div>`).join('') : '';
+        const providers = watch.results?.US?.flatrate || [];
+        const streams = providers.slice(0,5).map(p=>`<img class="stream-logo" src="${IMG_URL+p.logo_path}">`).join('');
+
+        content.innerHTML = `
+            <div class="modal-content-flex">
+                <img class="modal-poster" src="${IMG_URL + m.poster_path}">
+                <div class="modal-details">
+                    <div class="modal-title">${m.title || m.name}</div>
+                    <div class="modal-meta">${type.toUpperCase()} • ${m.vote_average} ★</div>
+                    <div class="modal-overview">${m.overview}</div>
+                    <div class="cast-grid">${cast}</div>
+                    ${streams ? `<div style="margin-top:20px; font-weight:700; color:var(--accent);">STREAMING:</div><div class="stream-grid">${streams}</div>` : ''}
+                </div>
+            </div>`;
+        
+        modal.style.display = 'flex';
+        setTimeout(()=>modal.classList.add('active'),10);
+    }
+
+    function closeModal() { document.getElementById('quick-view-modal').classList.remove('active'); setTimeout(()=>document.getElementById('quick-view-modal').style.display='none',300); }
+    function loadMore() { currentPage++; runBrowseSearch(); }
+
+    // --- INTEL ---
+    async function runKnowledgeSearch() {
+        const q = document.getElementById('know-search').value;
+        const grid = document.getElementById('grid-container');
+        document.getElementById('view-collection').style.display = 'block'; document.getElementById('view-dossier').style.display = 'none';
+        grid.innerHTML = '<div style="text-align:center; padding:50px;">SEARCHING ARCHIVES...</div>';
+        
+        const res = await fetch(`${BASE_URL}/search/multi?api_key=${TMDB_KEY}&query=${q}`);
+        const data = await res.json();
+        
+        grid.innerHTML = '';
+        data.results.forEach(m => {
+            if(!m.poster_path) return;
+            const type = m.media_type;
+            if(type === 'person') return;
+            const card = document.createElement('div'); card.className = 'exhibit-card';
+            card.onclick = () => openIntelPage(m, type);
+            card.innerHTML = `<div class="poster-frame"><img src="${IMG_URL + m.poster_path}"></div><div class="film-title">${m.title || m.name}</div>`;
+            grid.appendChild(card);
+        });
+    }
+
+    async function openIntelPage(m, type) {
+        document.getElementById('view-collection').style.display = 'none';
+        document.getElementById('view-dossier').style.display = 'block';
+        document.getElementById('btn-back').style.display = 'block';
+        const c = document.getElementById('dossier-content');
+        c.innerHTML = '<div style="text-align:center; padding:100px;">DECRYPTING FILE...</div>';
+        
+        const messages = [{role: "system", content: "Analyze film. JSON only: {tagline_ai, plot_twist, cultural_impact, status_verdict}"}, {role: "user", content: m.title||m.name}];
+        const ai = await callGroq(messages);
+        
+        c.innerHTML = `
+            <div style="display:flex; gap:40px; align-items:flex-start;">
+                <img src="${IMG_URL+m.poster_path}" style="width:300px; border-radius:15px; border:2px solid var(--accent);">
+                <div>
+                    <h1 class="dossier-header-title">${m.title||m.name}</h1>
+                    <div style="font-size:24px; color:var(--accent); font-weight:900; margin:20px 0;">"${ai.tagline_ai||'Classified'}"</div>
+                    <p style="font-size:16px; line-height:1.6;">${m.overview}</p>
+                    <div style="margin-top:30px; padding:20px; border:1px dashed var(--border);">
+                        <strong style="color:var(--accent-secondary);">CULTURAL IMPACT:</strong><br>${ai.cultural_impact}
+                    </div>
+                    <div class="spoiler-container" onclick="this.querySelector('.spoiler-text').classList.add('revealed')">
+                        <div style="color:red; font-weight:900; margin-bottom:10px;">⚠ SPOILER (CLICK TO REVEAL)</div>
+                        <div class="spoiler-text">${ai.plot_twist}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+</script>
+</body>
+</html>
